@@ -8,9 +8,9 @@ import (
 )
 
 func WriteToSocket(connect net.Conn, errChan chan error) {
-	for {
-		read := bufio.NewReader(os.Stdin)
+	read := bufio.NewReader(os.Stdin)
 
+	for {
 		txt, err := read.ReadBytes('\n')
 		if err != nil {
 			errChan <- err
@@ -18,6 +18,7 @@ func WriteToSocket(connect net.Conn, errChan chan error) {
 		}
 
 		_, err = connect.Write(txt)
+
 		if err != nil {
 			errChan <- err
 			return
@@ -26,15 +27,14 @@ func WriteToSocket(connect net.Conn, errChan chan error) {
 }
 
 func ReadFromSocket(connect net.Conn, errChan chan error) {
-	for {
-		data := make([]byte, 0)
 
-		_, err := connect.Read(data)
+	input := make([]byte, 1024)
+	for {
+		_, err := connect.Read(input)
 		if err != nil {
 			errChan <- err
 			return
 		}
-
-		fmt.Println(data)
+		fmt.Println("Данные из сокета:", string(input))
 	}
 }

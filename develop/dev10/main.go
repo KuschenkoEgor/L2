@@ -1,53 +1,72 @@
 package main
 
 import (
-	"example.com/m/v2/L2_WB/develop/dev10/pkg"
+	"GolandProjects/L2_WB/develop/dev10/pkg"
 	"flag"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
-	"strconv"
+	"sync"
+	"syscall"
 	"time"
 )
 
 type Args struct {
-	host string
-	port string
-	TimeOut string
+	host    string
+	port    string
+	TimeOut time.Duration
 }
 
-func TelnetServer(A Args)  error {
-	address := fmt.Sprintf("%v:%v",A.host,A.port)
+func TelnetServer(A Args) error {
+	address := fmt.Sprintf("%v:%v", A.host, A.port)
 
-	rn := []rune(A.TimeOut)
-	T, _ := strconv.Atoi(string(rn[0]))
-
-	TimeOut:= time.Duration(T)*time.Second
-
-	connect,err := net.DialTimeout("tcp",address,TimeOut)
+	fmt.Println("TimeOut", A.TimeOut)
+	connect, err := net.DialTimeout("tcp", address, A.TimeOut)
 	if err != nil {
 		return err
 	}
 	defer connect.Close()
 	fmt.Println("Connection is completed!")
 
-	signals := make(chan os.Signal,1)
-	signal.Notify(signals)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	errChan := make(chan error)
 
-	go pkg.ReadFromSocket(connect,errChan)
-	go pkg.WriteToSocket(connect,errChan)
+	go pkg.ReadFromSocket(connect, errChan)
+	go pkg.WriteToSocket(connect, errChan)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-signals:
+				println("program trying to exit....")
+				return
+			case err = <-errChan:
+				if err != nil {
+					return
+				}
+			default:
+				continue
+			}
+		}
+	}()
+
+	wg.Wait()
 
 	return nil
 }
 
-
 func main() {
 	var A Args
 
-	flag.StringVar(&A.TimeOut,"timeout","10s","timeout to connect")
+	flag.DurationVar(&A.TimeOut, "timeout", 10, "timeout to connect")
 	flag.Parse()
 
 	A.host = os.Args[2]
