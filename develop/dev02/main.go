@@ -17,6 +17,7 @@ package main
 //В случае если была передана некорректная строка,
 //функция должна возвращать ошибку. Написать unit-тесты.
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -24,7 +25,7 @@ import (
 	"unicode/utf8"
 )
 
-func ConvertString(rs, answer []rune, k, ln int) []rune {
+func ConvertString(rs, answer []rune, k, ln int) ([]rune, error) {
 	for i := 0; i < ln; i++ {
 
 		if unicode.IsDigit(rs[0]) {
@@ -55,23 +56,28 @@ func ConvertString(rs, answer []rune, k, ln int) []rune {
 		k++
 	}
 	if k == 0 {
-		err := fmt.Errorf("Ошибка! Некорректная строка")
-		fmt.Println(err.Error())
+		err := errors.New("Некорректная строка")
+		return nil, err
 	}
 
-	return answer
+	return answer, nil
 }
 
 func main() {
 	var k int
 	var Str string
+	var err error
 	fmt.Println("Введите строку:")
 	fmt.Scan(&Str)
 	rs := []rune(Str)
 	answer := make([]rune, 0)
 	ln := utf8.RuneCountInString(Str)
 
-	answer = ConvertString(rs, answer, k, ln)
+	answer, err = ConvertString(rs, answer, k, ln)
+	if err != nil {
+		fmt.Println(err)
+
+	}
 
 	fmt.Println("Отформатированная строка:", string(answer))
 }
